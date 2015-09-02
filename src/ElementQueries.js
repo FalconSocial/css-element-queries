@@ -159,17 +159,9 @@
          * @param {String} property width|height
          * @param {String} value
          */
-        function queueQuery(selector, mode, property, value) {
-            var query;
-            if (document.querySelectorAll) query = document.querySelectorAll.bind(document);
-            if (!query && 'undefined' !== typeof $$) query = $$;
-            if (!query && 'undefined' !== typeof jQuery) query = jQuery;
+        function queueQuery(selector, mode, property, value, component) {
 
-            if (!query) {
-                throw 'No document.querySelectorAll, jQuery or Mootools\'s $$ found.';
-            }
-
-            var elements = query(selector);
+            var elements = Polymer.dom(component.shadowRoot).querySelectorAll(selector);
             for (var i = 0, j = elements.length; i < j; i++) {
                 setupElement(elements[i], {
                     mode: mode,
@@ -184,12 +176,12 @@
         /**
          * @param {String} css
          */
-        function extractQuery(css) {
+        function extractQuery(css, component) {
             var match;
             css = css.replace(/'/g, '"');
             while (null !== (match = regex.exec(css))) {
                 if (5 < match.length) {
-                    queueQuery(match[1] || match[5], match[2], match[3], match[4]);
+                    queueQuery(match[1] || match[5], match[2], match[3], match[4], component);
                 }
             }
         }
@@ -197,7 +189,7 @@
         /**
          * @param {CssRule[]|String} rules
          */
-        function readRules(rules) {
+        function readRules(rules, component) {
             var selector = '';
             if (!rules) {
                 return;
@@ -205,19 +197,19 @@
             if ('string' === typeof rules) {
                 rules = rules.toLowerCase();
                 if (-1 !== rules.indexOf('min-width') || -1 !== rules.indexOf('max-width')) {
-                    extractQuery(rules);
+                    extractQuery(rules, component);
                 }
             } else {
                 for (var i = 0, j = rules.length; i < j; i++) {
                     if (1 === rules[i].type) {
                         selector = rules[i].selectorText || rules[i].cssText;
                         if (-1 !== selector.indexOf('min-height') || -1 !== selector.indexOf('max-height')) {
-                            extractQuery(selector);
+                            extractQuery(selector, component);
                         }else if(-1 !== selector.indexOf('min-width') || -1 !== selector.indexOf('max-width')) {
-                            extractQuery(selector);
+                            extractQuery(selector, component);
                         }
                     } else if (4 === rules[i].type) {
-                        readRules(rules[i].cssRules || rules[i].rules);
+                        readRules(rules[i].cssRules || rules[i].rules, component);
                     }
                 }
             }
@@ -229,11 +221,14 @@
          * @param {Boolean} withTracking allows and requires you to use detach, since we store internally all used elements
          *                               (no garbage collection possible if you don not call .detach() first)
          */
-        this.init = function(withTracking) {
+        this.init = function(withTracking, element) {
             this.withTracking = withTracking;
-            for (var i = 0, j = document.styleSheets.length; i < j; i++) {
+            this.component = element;
+            this.root = element ? element.shadowRoot : document;
+
+            for (var i = 0, j = this.root.styleSheets.length; i < j; i++) {
                 try {
-                    readRules(document.styleSheets[i].cssText || document.styleSheets[i].cssRules || document.styleSheets[i].rules);
+                    readRules(this.root.styleSheets[i].cssText || this.root.styleSheets[i].cssRules || this.root.styleSheets[i].rules, this.component);
                 } catch(e) {
                     if (e.name !== 'SecurityError') {
                         throw e;
@@ -294,47 +289,12 @@
 
     ElementQueries.withTracking = false;
 
-    ElementQueries.init = function() {
+    ElementQueries.init = function(element) {
         if (!ElementQueries.instance) {
             ElementQueries.instance = new ElementQueries();
         }
 
-        ElementQueries.instance.init(ElementQueries.withTracking);
+        ElementQueries.instance.init(ElementQueries.withTracking, element);
     };
-
-    var domLoaded = function (callback) {
-        /* Internet Explorer */
-        /*@cc_on
-        @if (@_win32 || @_win64)
-            document.write('<script id="ieScriptLoad" defer src="//:"><\/script>');
-            document.getElementById('ieScriptLoad').onreadystatechange = function() {
-                if (this.readyState == 'complete') {
-                    callback();
-                }
-            };
-        @end @*/
-        /* Mozilla, Chrome, Opera */
-        if (document.addEventListener) {
-            document.addEventListener('DOMContentLoaded', callback, false);
-        }
-        /* Safari, iCab, Konqueror */
-        if (/KHTML|WebKit|iCab/i.test(navigator.userAgent)) {
-            var DOMLoadTimer = setInterval(function () {
-                if (/loaded|complete/i.test(document.readyState)) {
-                    callback();
-                    clearInterval(DOMLoadTimer);
-                }
-            }, 10);
-        }
-        /* Other web browsers */
-        window.onload = callback;
-    };
-
-    if (window.addEventListener) {
-        window.addEventListener('load', ElementQueries.init, false);
-    } else {
-        window.attachEvent('onload', ElementQueries.init);
-    }
-    domLoaded(ElementQueries.init);
 
 })();
