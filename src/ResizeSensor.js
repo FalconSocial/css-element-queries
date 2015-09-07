@@ -42,7 +42,7 @@
             if (element.currentStyle) {
                 return element.currentStyle[prop];
             } else if (window.getComputedStyle) {
-                return window.getComputedStyle(element, null).getPropertyValue(prop);
+                //return window.getComputedStyle(element, null).getPropertyValue(prop);
             } else {
                 return element.style[prop];
             }
