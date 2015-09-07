@@ -77,10 +77,6 @@
                 '</div>';
             element.appendChild(element.resizeSensor);
 
-            if (!{fixed: 1, absolute: 1}[getComputedStyle(element, 'position')]) {
-                element.style.position = 'relative';
-            }
-
             var expand = element.resizeSensor.childNodes[0];
             var expandChild = expand.childNodes[0];
             var shrink = element.resizeSensor.childNodes[1];
