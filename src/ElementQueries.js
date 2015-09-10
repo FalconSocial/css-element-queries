@@ -226,9 +226,9 @@
             this.component = element;
             this.root = element ? element.shadowRoot : document;
 
-            for (var i = 0, j = this.root.styleSheets.length; i < j; i++) {
+            for (var i = 0, j = this.component._styles.length; i < j; i++) {
                 try {
-                    readRules(this.root.styleSheets[i].cssText || this.root.styleSheets[i].cssRules || this.root.styleSheets[i].rules, this.component);
+                    readRules(this.component._styles[i].cssText || this.component._styles[i].cssRules || this.component._styles[i].rules, this.component);
                 } catch(e) {
                     if (e.name !== 'SecurityError') {
                         throw e;
