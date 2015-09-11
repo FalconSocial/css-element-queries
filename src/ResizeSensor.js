@@ -75,6 +75,7 @@
                 '<div class="resize-sensor-shrink" style="' + style + '">' +
                     '<div style="' + styleChild + ' width: 200%; height: 200%"></div>' +
                 '</div>';
+
             element.appendChild(element.resizeSensor);
 
             var expand = element.resizeSensor.childNodes[0];
@@ -118,7 +119,7 @@
                 reset();
             });
 
-            addEvent(shrink, 'scroll',function() {
+            addEvent(shrink, 'scroll', function() {
                 if (element.offsetWidth < lastWidth || element.offsetHeight < lastHeight) {
                     changed();
                 }
