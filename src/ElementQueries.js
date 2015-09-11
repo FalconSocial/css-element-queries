@@ -118,7 +118,7 @@
 
                     if (!attrValues[attrName]) attrValues[attrName] = '';
                     if (attrValue && -1 === (' '+attrValues[attrName]+' ').indexOf(' ' + attrValue + ' ')) {
-                        attrValues[attrName] += ' ' + attrValue;
+                        attrValues[attrName] = ' ' + attrValue;
                     }
                 }
 
@@ -159,9 +159,10 @@
          * @param {String} property width|height
          * @param {String} value
          */
-        function queueQuery(selector, mode, property, value, component) {
+        function queueQuery(selector, mode, property, value, extras, querySelector, component) {
 
-            var elements = Polymer.dom(component.shadowRoot).querySelectorAll(selector);
+            var elements = Polymer.dom(component.root).querySelectorAll(selector + extras);
+
             for (var i = 0, j = elements.length; i < j; i++) {
                 setupElement(elements[i], {
                     mode: mode,
@@ -176,12 +177,12 @@
         /**
          * @param {String} css
          */
-        function extractQuery(css, component) {
+        function extractQuery(css, querySelector, component) {
             var match;
-            css = css.replace(/'/g, '"');
+            css = querySelector.replace(/'/g, '"');
             while (null !== (match = regex.exec(css))) {
                 if (5 < match.length) {
-                    queueQuery(match[1] || match[5], match[2], match[3], match[4], component);
+                    queueQuery(match[1] || match[5], match[2], match[3], match[4], match[5], querySelector, component);
                 }
             }
         }
@@ -191,6 +192,8 @@
          */
         function readRules(rules, component) {
             var selector = '';
+            var querySelector = '';
+
             if (!rules) {
                 return;
             }
@@ -202,11 +205,12 @@
             } else {
                 for (var i = 0, j = rules.length; i < j; i++) {
                     if (1 === rules[i].type) {
-                        selector = rules[i].selectorText || rules[i].cssText;
+                        selector = rules[i].parsedSelector || rules[i].cssText;
+                        querySelector = rules[i].selector;
                         if (-1 !== selector.indexOf('min-height') || -1 !== selector.indexOf('max-height')) {
-                            extractQuery(selector, component);
+                            extractQuery(selector, querySelector, component);
                         }else if(-1 !== selector.indexOf('min-width') || -1 !== selector.indexOf('max-width')) {
-                            extractQuery(selector, component);
+                            extractQuery(selector,  querySelector, component);
                         }
                     } else if (4 === rules[i].type) {
                         readRules(rules[i].cssRules || rules[i].rules, component);
@@ -224,11 +228,11 @@
         this.init = function(withTracking, element) {
             this.withTracking = withTracking;
             this.component = element;
-            this.root = element ? element.shadowRoot : document;
+            this.root = element ? element.root : document;
 
             for (var i = 0, j = this.component._styles.length; i < j; i++) {
                 try {
-                    readRules(this.component._styles[i].cssText || this.component._styles[i].cssRules || this.component._styles[i].rules, this.component);
+                    readRules(this.component._styles[i].__cssRules.rules, this.component);
                 } catch(e) {
                     if (e.name !== 'SecurityError') {
                         throw e;
