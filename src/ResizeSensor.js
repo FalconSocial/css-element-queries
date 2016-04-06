@@ -86,21 +86,25 @@
             var lastWidth, lastHeight;
 
             var reset = function() {
-                expandChild.style.width = expand.offsetWidth + 10 + 'px';
-                expandChild.style.height = expand.offsetHeight + 10 + 'px';
-                expand.scrollLeft = expand.scrollWidth;
-                expand.scrollTop = expand.scrollHeight;
-                shrink.scrollLeft = shrink.scrollWidth;
-                shrink.scrollTop = shrink.scrollHeight;
-                lastWidth = element.offsetWidth;
-                lastHeight = element.offsetHeight;
+                window.requestAnimationFrame(function () {
+                    expandChild.style.width = expand.offsetWidth + 10 + 'px';
+                    expandChild.style.height = expand.offsetHeight + 10 + 'px';
+                    expand.scrollLeft = expand.scrollWidth;
+                    expand.scrollTop = expand.scrollHeight;
+                    shrink.scrollLeft = shrink.scrollWidth;
+                    shrink.scrollTop = shrink.scrollHeight;
+                    lastWidth = element.offsetWidth;
+                    lastHeight = element.offsetHeight;
+                });
             };
 
             reset();
 
             var changed = function() {
                 if (element.resizedAttached) {
-                    element.resizedAttached.call();
+                    window.requestAnimationFrame(function () {
+                        element.resizedAttached.call();
+                    });
                 }
             };
 
@@ -113,29 +117,33 @@
             };
 
             addEvent(expand, 'scroll', function() {
-                if (element.offsetWidth > lastWidth || element.offsetHeight > lastHeight) {
-                    changed();
-                }
+                window.requestAnimationFrame(function () {
+                    if (element.offsetWidth > lastWidth || element.offsetHeight > lastHeight) {
+                        changed();
+                    }
+                });
                 reset();
             });
 
             addEvent(shrink, 'scroll', function() {
-                if (element.offsetWidth < lastWidth || element.offsetHeight < lastHeight) {
-                    changed();
-                }
+                window.requestAnimationFrame(function () {
+                    if (element.offsetWidth < lastWidth || element.offsetHeight < lastHeight) {
+                        changed();
+                    }
+                });
                 reset();
             });
         }
-        
+
         var elementType = Object.prototype.toString.call(element);
-        
+
         var isCollectionTyped = ('[object Array]' === elementType
             || ('[object NodeList]' === elementType)
             || ('[object HTMLCollection]' === elementType)
             || ('undefined' !== typeof jQuery && element instanceof jQuery) //jquery
             || ('undefined' !== typeof Elements && element instanceof Elements) //mootools
         );
-        
+
         if (isCollectionTyped) {
             var i = 0, j = element.length;
             for (; i < j; i++) {
