@@ -90,45 +90,47 @@
              * Extracts the computed width/height and sets to min/max- attribute.
              */
             this.call = function() {
-                // extract current dimensions
-                width = this.element.offsetWidth;
-                height = this.element.offsetHeight;
+                window.requestAnimationFrame(function () {
+                    // extract current dimensions
+                    width = this.element.offsetWidth;
+                    height = this.element.offsetHeight;
 
-                attrValues = {};
+                    attrValues = {};
 
-                for (key in this.options) {
-                    if (!this.options.hasOwnProperty(key)){
-                        continue;
+                    for (key in this.options) {
+                        if (!this.options.hasOwnProperty(key)){
+                            continue;
+                        }
+                        option = this.options[key];
+
+                        value = convertToPx(this.element, option.value);
+
+                        actualValue = option.property == 'width' ? width : height;
+                        attrName = option.mode + '-' + option.property;
+                        attrValue = '';
+
+                        if (option.mode == 'min' && actualValue >= value) {
+                            attrValue += option.value;
+                        }
+
+                        if (option.mode == 'max' && actualValue <= value) {
+                            attrValue += option.value;
+                        }
+
+                        if (!attrValues[attrName]) attrValues[attrName] = '';
+                        if (attrValue && -1 === (' '+attrValues[attrName]+' ').indexOf(' ' + attrValue + ' ')) {
+                            attrValues[attrName] = ' ' + attrValue;
+                        }
                     }
-                    option = this.options[key];
 
-                    value = convertToPx(this.element, option.value);
-
-                    actualValue = option.property == 'width' ? width : height;
-                    attrName = option.mode + '-' + option.property;
-                    attrValue = '';
-
-                    if (option.mode == 'min' && actualValue >= value) {
-                        attrValue += option.value;
+                    for (var k in attributes) {
+                        if (attrValues[attributes[k]]) {
+                            this.element.setAttribute(attributes[k], attrValues[attributes[k]].substr(1));
+                        } else {
+                            this.element.removeAttribute(attributes[k]);
+                        }
                     }
-
-                    if (option.mode == 'max' && actualValue <= value) {
-                        attrValue += option.value;
-                    }
-
-                    if (!attrValues[attrName]) attrValues[attrName] = '';
-                    if (attrValue && -1 === (' '+attrValues[attrName]+' ').indexOf(' ' + attrValue + ' ')) {
-                        attrValues[attrName] = ' ' + attrValue;
-                    }
-                }
-
-                for (var k in attributes) {
-                    if (attrValues[attributes[k]]) {
-                        this.element.setAttribute(attributes[k], attrValues[attributes[k]].substr(1));
-                    } else {
-                        this.element.removeAttribute(attributes[k]);
-                    }
-                }
+                }.bind(this));
             };
         }
 
