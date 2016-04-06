@@ -6,6 +6,16 @@
 ;
 (function() {
 
+    // Only used for the dirty checking, so the event callback count is limted to max 1 call per fps per sensor.
+    // In combination with the event based resize sensor this saves cpu time, because the sensor is too fast and
+    // would generate too many unnecessary events.
+    var requestAnimationFrame = window.requestAnimationFrame ||
+        window.mozRequestAnimationFrame ||
+        window.webkitRequestAnimationFrame ||
+        function (fn) {
+            return window.setTimeout(fn, 20);
+        };
+
     /**
      * Class for dimension change detection.
      *
@@ -14,7 +24,7 @@
      *
      * @constructor
      */
-    this.ResizeSensor = function(element, callback) {
+    var ResizeSensor = function(element, callback) {
         /**
          *
          * @constructor
@@ -42,7 +52,7 @@
             if (element.currentStyle) {
                 return element.currentStyle[prop];
             } else if (window.getComputedStyle) {
-                //return window.getComputedStyle(element, null).getPropertyValue(prop);
+                return window.getComputedStyle(element, null).getPropertyValue(prop);
             } else {
                 return element.style[prop];
             }
@@ -64,8 +74,8 @@
 
             element.resizeSensor = document.createElement('div');
             element.resizeSensor.className = 'resize-sensor';
-            var style = 'position: absolute; left: 0; top: 0; right: 0; bottom: 0; overflow: scroll; z-index: -1; visibility: hidden;';
-            var styleChild = 'position: absolute; left: 0; top: 0;';
+            var style = 'position: absolute; left: 0; top: 0; right: 0; bottom: 0; overflow: hidden; z-index: -1; visibility: hidden;';
+            var styleChild = 'position: absolute; left: 0; top: 0; transition: 0s;';
 
             element.resizeSensor.style.cssText = style;
             element.resizeSensor.innerHTML =
@@ -75,37 +85,53 @@
                 '<div class="resize-sensor-shrink" style="' + style + '">' +
                     '<div style="' + styleChild + ' width: 200%; height: 200%"></div>' +
                 '</div>';
-
             element.appendChild(element.resizeSensor);
+
+            if (getComputedStyle(element, 'position') == 'static') {
+                element.style.position = 'relative';
+            }
 
             var expand = element.resizeSensor.childNodes[0];
             var expandChild = expand.childNodes[0];
             var shrink = element.resizeSensor.childNodes[1];
-            var shrinkChild = shrink.childNodes[0];
-
-            var lastWidth, lastHeight;
 
             var reset = function() {
-                window.requestAnimationFrame(function () {
-                    expandChild.style.width = expand.offsetWidth + 10 + 'px';
-                    expandChild.style.height = expand.offsetHeight + 10 + 'px';
-                    expand.scrollLeft = expand.scrollWidth;
-                    expand.scrollTop = expand.scrollHeight;
-                    shrink.scrollLeft = shrink.scrollWidth;
-                    shrink.scrollTop = shrink.scrollHeight;
-                    lastWidth = element.offsetWidth;
-                    lastHeight = element.offsetHeight;
-                });
+                expandChild.style.width  = 100000 + 'px';
+                expandChild.style.height = 100000 + 'px';
+
+                expand.scrollLeft = 100000;
+                expand.scrollTop = 100000;
+
+                shrink.scrollLeft = 100000;
+                shrink.scrollTop = 100000;
             };
 
             reset();
+            var dirty = false;
 
-            var changed = function() {
-                if (element.resizedAttached) {
-                    window.requestAnimationFrame(function () {
-                        element.resizedAttached.call();
-                    });
+            var dirtyChecking = function() {
+                if (!element.resizedAttached) return;
+
+                if (dirty) {
+                    element.resizedAttached.call();
+                    dirty = false;
                 }
+
+                requestAnimationFrame(dirtyChecking);
+            };
+
+            requestAnimationFrame(dirtyChecking);
+            var lastWidth, lastHeight;
+            var cachedWidth, cachedHeight; //useful to not query offsetWidth twice
+
+            var onScroll = function() {
+              if ((cachedWidth = element.offsetWidth) != lastWidth || (cachedHeight = element.offsetHeight) != lastHeight) {
+                  dirty = true;
+
+                  lastWidth = cachedWidth;
+                  lastHeight = cachedHeight;
+              }
+              reset();
             };
 
             var addEvent = function(el, name, cb) {
@@ -116,27 +142,11 @@
                 }
             };
 
-            addEvent(expand, 'scroll', function() {
-                window.requestAnimationFrame(function () {
-                    if (element.offsetWidth > lastWidth || element.offsetHeight > lastHeight) {
-                        changed();
-                    }
-                });
-                reset();
-            });
-
-            addEvent(shrink, 'scroll', function() {
-                window.requestAnimationFrame(function () {
-                    if (element.offsetWidth < lastWidth || element.offsetHeight < lastHeight) {
-                        changed();
-                    }
-                });
-                reset();
-            });
+            addEvent(expand, 'scroll', onScroll);
+            addEvent(shrink, 'scroll', onScroll);
         }
 
         var elementType = Object.prototype.toString.call(element);
-
         var isCollectionTyped = ('[object Array]' === elementType
             || ('[object NodeList]' === elementType)
             || ('[object HTMLCollection]' === elementType)
@@ -165,12 +175,20 @@
         };
     };
 
-    this.ResizeSensor.detach = function(element) {
+    ResizeSensor.detach = function(element) {
         if (element.resizeSensor) {
             element.removeChild(element.resizeSensor);
             delete element.resizeSensor;
             delete element.resizedAttached;
         }
     };
+
+    // make available to common module loader
+    if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
+        module.exports = ResizeSensor;
+    }
+    else {
+        window.ResizeSensor = ResizeSensor;
+    }
 
 })();
