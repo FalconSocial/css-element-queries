@@ -173,6 +173,8 @@
                 ResizeSensor.detach(element);
             }
         };
+
+        return this;
     };
 
     ResizeSensor.detach = function(element) {
