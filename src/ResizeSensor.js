@@ -49,6 +49,8 @@
          * @returns {String|Number}
          */
         function getComputedStyle(element, prop) {
+            var forcedDisplay = false;
+
             if (element.currentStyle) {
                 return element.currentStyle[prop];
             } else if (window.getComputedStyle) {
@@ -89,6 +91,11 @@
 
             if (getComputedStyle(element, 'position') == 'static') {
                 element.style.position = 'relative';
+            }
+
+            if (getComputedStyle(element, 'display') === 'none') {
+                element.style.cssText = 'display: block !important; visibility: hidden;';
+                forcedDisplay = true;
             }
 
             var expand = element.resizeSensor.childNodes[0];
@@ -144,6 +151,12 @@
 
             addEvent(expand, 'scroll', onScroll);
             addEvent(shrink, 'scroll', onScroll);
+            
+            setTimeout(function () {
+                if (forcedDisplay) {
+                    element.style.cssText = '';
+                }
+            }, 1);
         }
 
         var elementType = Object.prototype.toString.call(element);
