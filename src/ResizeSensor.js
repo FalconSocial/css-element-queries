@@ -49,8 +49,6 @@
          * @returns {String|Number}
          */
         function getComputedStyle(element, prop) {
-            var forcedDisplay = false;
-
             if (element.currentStyle) {
                 return element.currentStyle[prop];
             } else if (window.getComputedStyle) {
@@ -66,6 +64,12 @@
          * @param {Function}    resized
          */
         function attachResizeEvent(element, resized) {
+            
+            // Whether we should force element visibility
+            // Fixing issue if an element is display: none, no event handlers
+            // will be attached.
+            var forcedDisplay = false;
+            
             if (!element.resizedAttached) {
                 element.resizedAttached = new EventQueue();
                 element.resizedAttached.add(resized);
